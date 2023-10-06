@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en"> 
+
+<head>
+<title>Shipment Management Form</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+	<div class="page-header text-center"><h2>Student Enrollment Form</h2></div>
+
+<form id="shpForm" method="get">
+
+<div class="form-group">
+<label >Shipment-No:</label> <input type="text" class="form-control" id="no" placeholder="Enter Shipment-No" onchange="getShp()"required></div>
+
+<div class="form-group">
+<label >Description:</label> <input type="text" class="form-control" id="desc" placeholder="Enter Description" required></div>
+
+<div class="form-group">
+<label >Source:</label> <input type="text" class="form-control" id="src" placeholder="Enter Source" required></div>
+
+<div class="form-group">
+<label >Destination:</label> <input type="text" class="form-control" id="dest" placeholder="Enter Destination" required></div>
+
+<div class="form-group">
+<label >Shipping-Date:</label> <input type="date" class="form-control" id="sd" placeholder="Enter Shipping-Date" required></div>
+
+<div class="form-group">
+<label >Expected-Delivery-Date:</label> <input type="date" class="form-control" id="edd" placeholder="Enter Expected-Delivery-Date" required></div>
+
+<div class="form-group text-center">
+<button type="button" class="btn btn-lg btn-primary" id="save" onclick="saveData()" disabled>Save</button>
+<button type="button" class="btn btn-lg btn-primary" id="change" onclick="changeData()" disabled>Update</button>
+<button type="button" class="btn btn-lg btn-primary" id="reset" onclick="resetForm()" disabled>Reset</button>
+</div>
+</form>
+</div>
+
+<script src="https://login2explore.com/jpdb/resources/js/0.0.3/jpdb-commons.js"></script>
+
+<script type="text/javascript">
+
+var BaseURL="http://api.login2explore.com:5577";
+var IRL="/api/irl";
+var IML="/api/iml";
+var DBName=" DELIVERY-DB";
+var REL=" SHIPMENT-TABLE";
+var connToken="90931632|-31949332779074711|90961873	";
+
+$('#no').focus();
+
+function saveRecNO(jsonObj){
+	var lvData=JSON.parse(jsonObj.data);
+	localStorage.setItem('recno',lvData.rec_no);
+}
+
+function getShpIDAsJsonObj(){
+	var no =$('#no').val();
+	var jsonStr={
+		no: no
+	};
+	return JSON.stringify(jsonStr);
+}
+
+function fillData(jsonObj){
+	saveRecNO(jsonObj);
+	var record=JSON.parse(jsonObj.data).record;
+	
+	$('#desc').val(record.description);
+	$('#src').val(record.source);
+	$('#dest').val(record.destination);
+	$('#sd').val(record.shippingdate);
+	$('#edd').val(record.expdelivarydate);
+}
+
+function resetForm(){
+	$('#no').val("");
+	$('#desc').val("");
+	$('#dest').val("");
+	$('#src').val("");
+	$('#sd').val("");
+	$('#edd').val("");
+	$('#no').prop('disabled',false);
+	$('#save').prop('disabled',true);
+	$('#change').prop('disabled',true);
+	$('#reset').prop('disabled',true);
+	$('#no').focus();
+}
+
+function validateData() {
+    var no, desc, src, dest, sd, edd;
+    no = $('#no').val();
+    desc = $('#desc').val();
+    src = $('#src').val();
+    dest = $('#dest').val();
+    sd = $('#sd').val();
+    edd = $('#edd').val();
+
+    if (no === "") {
+        alert("Shipment-No Missing");
+        $('#no').focus();
+        return '';
+    }
+    if (desc === "") {
+        alert("Description Missing");
+        $('#desc').focus();
+        return '';
+    }
+    if (src === "") {
+        alert("Source Missing");
+        $('#src').focus();
+        return '';
+    }
+    if (dest === "") {
+        alert("Destination Missing");
+        $('#dest').focus();
+        return '';
+    }
+    if (sd === "") {
+        alert("Shipping-Date Missing");
+        $('#sd').focus();
+        return '';
+    }
+    if (edd === "") {
+        alert("Expected-Delivery-Date Missing");
+        $('#edd').focus();
+        return '';
+    }
+
+    var jsonStrObj = {
+        no: no,
+        description: desc,
+        source: src,
+        destination: dest,
+        shippingdate: sd,
+        expdelivarydate: edd
+    };
+
+    return JSON.stringify(jsonStrObj);
+}
+
+
+function getShp(){
+	var shpIdJsonObj=getShpIDAsJsonObj();
+	var getRequest=createGET_BY_KEYRequest(connToken, DBName, REL, shpIdJsonObj);
+	jQuery.ajaxSetup({async: false});
+	var resJsonObj=executeCommandAtGivenBaseUrl(getRequest, BaseURL, IRL);
+	jQuery.ajaxSetup({async: true});
+	if(resJsonObj.status === 400 || resJsonObj.status === 404){
+		$('#save').prop('disabled',false);
+		$('#reset').prop('disabled',false);
+		$('#desc').focus();
+	}
+	else if(resJsonObj.status === 200){
+		$('#no').prop('disabled',true);
+		fillData(resJsonObj);
+		$('#change').prop('disabled',false);
+		$('#reset').prop('disabled',false);
+		$('#desc').focus();
+
+	}
+}
+
+function saveData(){
+	var jsonStrObj=validateData();
+	if(jsonStrObj === ''){
+		return '';
+	}
+	var putRequest=createPUTRequest(connToken, jsonStrObj, DBName, REL);
+	jQuery.ajaxSetup({async: false});
+	var resJsonObj=executeCommandAtGivenBaseUrl(putRequest, BaseURL, IML);
+	jQuery.ajaxSetup({async: true});
+	resetForm();
+	$('#no').focus();
+}
+
+function changeData(){
+	$('#change').prop('disabled',true);
+	jsonChg=validateData();
+	var updateRequest= createUPDATERecordRequest(connToken, jsonChg, DBName, REL, localStorage.getItem('recno'));
+	jQuery.ajaxSetup({async: false});
+	var resJsonObj=executeCommandAtGivenBaseUrl(updateRequest, BaseURL, IML);
+	jQuery.ajaxSetup({async: true});
+	console.log(resJsonObj);
+	resetForm();
+	$('#no').focus();
+}
+
+</script>
+
+</body>
+</html>
